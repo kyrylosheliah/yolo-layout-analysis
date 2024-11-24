@@ -1,0 +1,8 @@
+*
+
+!.gitignore
+!.reminder.txt
+!scripts
+!scripts/*
+!.vscode
+!.vscode/*
