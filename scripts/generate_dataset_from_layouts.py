@@ -1,7 +1,10 @@
 from pathlib import Path
 from PIL import Image, ImageDraw
+import cv2
 import tqdm
 import json
+import albumentations as A
+import numpy as np
 
 def traverse_dir(dir):
     dir = Path(f"{dir}")
@@ -15,6 +18,36 @@ def create_dir(dir):
         dir.mkdir()
     return dir
 
+def per_patch_transform(w, h):
+    return A.Compose([
+        A.RandomResizedCrop(
+            height=h, width=w,
+            scale=(0.8,0.8),
+            ratio=(w/h,w/h),
+            p=0.25),
+        A.ElasticTransform(alpha=3, sigma=10),
+        A.GridDistortion(num_steps=5, distort_limit=(-0.1,0.1)),
+    ])
+def per_page_transform(W, H):
+    return A.Compose([
+        A.RandomBrightnessContrast(p=1.0),
+        A.ColorJitter(
+            brightness=0, contrast=0,
+            saturation=(0.5, 1.5), hue=(-0.25, 0.25)),
+        A.GaussNoise(var_limit=(100,800)),
+        A.OneOf([
+            A.MedianBlur(blur_limit=3, p=1.0),
+            A.Blur(blur_limit=3, p=1.0),
+        ]),
+    ])
+
+def transform_pil(image, transform):
+    image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    image = transform(image=image)["image"]
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = Image.fromarray(image)
+    return image
+
 def generate_dataset_from_layouts(input_dir, dataset_name, output_dir, page_width=640, page_height=640):
     W, H = page_width, page_height
     input_ = traverse_dir(traverse_dir(input_dir) / dataset_name)
@@ -23,6 +56,7 @@ def generate_dataset_from_layouts(input_dir, dataset_name, output_dir, page_widt
     output_train_ = create_dir(output_ / "train")
     output_train_labels_ = create_dir(output_train_ / "labels")
     output_train_images_ = create_dir(output_train_ / "images")
+    page_transform = per_page_transform(W, H)
     for layout_file_name in tqdm.tqdm(sorted(Path(input_layouts_).resolve().glob("*.json"))):
         stem = layout_file_name.stem
         #image = Image.new("RGBA", (W, H), (255,255,255,255))
@@ -32,9 +66,12 @@ def generate_dataset_from_layouts(input_dir, dataset_name, output_dir, page_widt
             patch_list = json.loads(file.read())
         for patch in patch_list:
             cx, cy, w, h = patch["cx"], patch["cy"], patch["w"], patch["h"]
+            p_W, p_H = int(W * w), int(H * h)
             class_id = patch["class_id"]
             labels.append(f"{class_id} {cx} {cy} {w} {h}")
-            patch = Image.open(patch["file_path"]).resize((int(W * w), int(H * h)))
+            patch = Image.open(patch["file_path"]).resize((p_W, p_H))
+            patch_transform = per_patch_transform(p_W, p_H)
+            patch = transform_pil(patch, patch_transform)
             patch_x1 = int(W * (cx - (w / 2)))
             patch_x2 = int(H * (cy - (h / 2)))
             image.paste(patch, (patch_x1, patch_x2))
@@ -53,6 +90,7 @@ def generate_dataset_from_layouts(input_dir, dataset_name, output_dir, page_widt
             #    )
             #    draw.rectangle([(x1, y1), (x2, y2)], fill=fill)
             #    image = Image.alpha_composite(image, overlay)
+        image = transform_pil(image, page_transform)
         output_path = str(output_train_images_ / f"{stem}.jpg")
         image.save(output_path)
         labels = "\n".join(labels)
@@ -61,5 +99,7 @@ def generate_dataset_from_layouts(input_dir, dataset_name, output_dir, page_widt
 
 generate_dataset_from_layouts(
     input_dir="C:\\.layouts\\",
-    dataset_name="DocBank_10000_layouts+percentage+shuffle",
-    output_dir="C:\\.datasets_converted\\")
+    #dataset_name="DocBank_10000+percentage+shuffle",
+    dataset_name="TEST_COLOR",
+    output_dir="C:\\.datasets_converted\\",
+    page_width=640, page_height=640)

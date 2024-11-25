@@ -192,7 +192,7 @@ def bestfit_generator(index):
         json.dump(put_elements, f, default=lambda x: x.__dict__, indent=2)
 
 
-median_strategy = False
+median_strategy = True
 median_w = 0
 median_h = 0
 sampling_strategy = False
