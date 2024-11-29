@@ -22,19 +22,22 @@ def per_patch_transform(w, h):
     return A.Compose([
         A.RandomResizedCrop(
             height=h, width=w,
-            scale=(0.8,0.8),
+            scale=(0.9,0.9),
             ratio=(w/h,w/h),
             p=0.25),
-        A.ElasticTransform(alpha=3, sigma=10),
-        A.GridDistortion(num_steps=5, distort_limit=(-0.1,0.1)),
+        A.ElasticTransform(alpha=1, sigma=10),
+        A.GridDistortion(num_steps=5, distort_limit=(-0.2,0.2)),
     ])
 def per_page_transform(W, H):
     return A.Compose([
-        A.RandomBrightnessContrast(p=1.0),
+        A.RandomBrightnessContrast(
+            brightness_limit=(-0.1, 0.1),
+            contrast_limit=(-0.1, 0.1),
+            p=1.0),
         A.ColorJitter(
             brightness=0, contrast=0,
             saturation=(0.5, 1.5), hue=(-0.25, 0.25)),
-        A.GaussNoise(var_limit=(100,800)),
+        A.GaussNoise(var_limit=(0,400)),
         A.OneOf([
             A.MedianBlur(blur_limit=3, p=1.0),
             A.Blur(blur_limit=3, p=1.0),
@@ -48,11 +51,12 @@ def transform_pil(image, transform):
     image = Image.fromarray(image)
     return image
 
-def generate_dataset_from_layouts(input_dir, dataset_name, output_dir, page_width=640, page_height=640):
-    W, H = page_width, page_height
+def generate_dataset_from_layouts(input_dir, dataset_name, output_dir, page_size=640):
+    W, H = page_size, page_size
     input_ = traverse_dir(traverse_dir(input_dir) / dataset_name)
     input_layouts_ = traverse_dir(input_ / "layouts")
-    output_ = create_dir(traverse_dir(output_dir) / dataset_name)
+    size_suffix = "" if page_size == 640 else f"_{page_size}"
+    output_ = create_dir(traverse_dir(output_dir) / f"{dataset_name}{size_suffix}")
     output_train_ = create_dir(output_ / "train")
     output_train_labels_ = create_dir(output_train_ / "labels")
     output_train_images_ = create_dir(output_train_ / "images")
@@ -100,6 +104,9 @@ def generate_dataset_from_layouts(input_dir, dataset_name, output_dir, page_widt
 generate_dataset_from_layouts(
     input_dir="C:\\.layouts\\",
     #dataset_name="DocBank_10000+percentage+shuffle",
-    dataset_name="TEST_COLOR",
+    #dataset_name="DocBank_10000+median+shuffle",
+    #dataset_name="DocBank_10000+median+sampling",
+    dataset_name="DocBank_10000+percentage+sampling",
     output_dir="C:\\.datasets_converted\\",
-    page_width=640, page_height=640)
+    #page_size=640)
+    page_size=1000)

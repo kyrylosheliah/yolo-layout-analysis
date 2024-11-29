@@ -1,7 +1,8 @@
 from ultralytics import YOLO
 from pathlib import Path
 
-model = YOLO("best.pt")
+#model = YOLO("best.pt")
+model = YOLO("D:\\.dev\\yolo-layout-analysis\\runs_done\\docbank+median+sampling_yolo11m\\detect\\train\\weights\\best.pt")
 
 def create_dir(dir):
     dir = Path(f"{dir}")
@@ -10,9 +11,11 @@ def create_dir(dir):
     return dir
 
 results = model([
-    "C:\\.datasets\\DocSynth300K_split\\valid\\images\\1720631300_466168.jpg",
-    "C:\\.datasets\\DocSynth300K_split\\valid\\images\\1720630953_7256792.jpg",
-    "C:\\.datasets\\DocSynth300K_split\\valid\\images\\1720630677_6501238.jpg",
+    "C:\\.datasets\\DocBank\\test\\images\\1.tar_1401.0011.gz_dispersion_MNRAS_V2_6_ori.jpg",
+    "C:\\.datasets\\DocBank\\test\\images\\1.tar_1501.00405.gz_Freq-TS-Motifs_2_ori.jpg",
+    "C:\\.datasets\\DocBank\\test\\images\\1.tar_1601.00034.gz_main_4_ori.jpg",
+    "C:\\.datasets\\DocBank\\test\\images\\2.tar_1501.00866.gz_APM-AMC-2015_6_ori.jpg",
+    "C:\\.datasets\\DocBank\\test\\images\\2.tar_1601.00732.gz_curve_lrr_4_ori.jpg",
 ])
 
 for (i, result) in enumerate(results):
@@ -22,6 +25,6 @@ for (i, result) in enumerate(results):
     #probs = result.probs  # Probs object for classification outputs
     #obb = result.obb  # Oriented boxes object for OBB outputs
     #result.show()  # display to screen
-    dir = create_dir("D:\\.dev\\yolo-layout-analysis\\prediction")
+    dir = create_dir("D:\\.dev\\yolo-layout-analysis\\out_yolo")
     filename = str(dir / f"result{i}.jpg")
     result.save(filename=filename)  # save to disk

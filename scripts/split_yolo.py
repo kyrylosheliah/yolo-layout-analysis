@@ -25,50 +25,47 @@ def tt_split(x, shard_size=0.1):
 def split_yolo(input_dir="",
                   dataset_name="",
                   save_dir="",
-                  save_dataset_name="",
                   test_valid_fractions=[0.05, 0.05],
                   move=False):
 
-    dataset_ = traverse_dir(Path(input_dir) / dataset_name)
-    dataset_labels_ = traverse_dir(dataset_ / "labels")
-    dataset_images_ = traverse_dir(dataset_ / "images")
+    input_ = traverse_dir(input_dir)
+    input_labels_ = traverse_dir(input_ / "labels")
+    input_images_ = traverse_dir(input_ / "images")
 
-    label_file_list = np.array([f for f in os.listdir(str(dataset_labels_))])
+    label_file_list = np.array([f for f in os.listdir(str(input_labels_))])
     test_frac = test_valid_fractions[0]
     valid_frac = test_valid_fractions[1]
-    train, test = tt_split(label_file_list, test_frac + valid_frac)
-    test, valid = tt_split(test, valid_frac)
+    siphoned_frac = test_frac + valid_frac
+    leftover_valid_frac = valid_frac / siphoned_frac
+    train, test = tt_split(label_file_list, siphoned_frac)
+    test, valid = tt_split(test, leftover_valid_frac)
     configs = {
         "test": test,
         "train": train,
         "valid": valid,
     }
 
-    output_ = create_dir(Path(save_dir) / save_dataset_name)
+    output_ = create_dir(Path(save_dir) / f"{dataset_name}_split")
 
     for config, label_file_names in tqdm.tqdm(configs.items()):
         output_config_ = create_dir(output_ / config)
         output_config_labels_ = create_dir(output_config_ / "labels")
         output_config_images_ = create_dir(output_config_ / "images")
-        if move:
-            for label_file_name in tqdm.tqdm(label_file_names):
-                image_file_name = Path(label_file_name).stem + ".jpg"
-                shutil.move(str(dataset_images_ / image_file_name),
-                            output_config_images_)
-                shutil.move(str(dataset_labels_ / label_file_name),
-                            output_config_labels_)
-        else:
-            for label_file_name in tqdm.tqdm(label_file_names):
-                image_file_name = Path(label_file_name).stem + ".jpg"
-                shutil.copy(str(dataset_images_ / image_file_name),
-                            output_config_images_)
-                shutil.copy(str(dataset_labels_ / label_file_name),
-                            output_config_labels_)
+        for label_file_name in tqdm.tqdm(label_file_names):
+            image_file_name = Path(label_file_name).stem + ".jpg"
+            shutil.copy(str(input_images_ / image_file_name),
+                        output_config_images_)
+            shutil.copy(str(input_labels_ / label_file_name),
+                        output_config_labels_)
+
+#dataset_name = "DocBank_10000+percentage+shuffle"
+#dataset_name = "DocBank_10000+median+shuffle"
+#dataset_name = "DocBank_10000+median+sampling"
+#dataset_name = "DocBank_10000+percentage+sampling"
+dataset_name = "DocBank_10000+percentage+sampling_1000"
 
 split_yolo(
-    input_dir="C:\\.datasets_converted",
-    dataset_name="DocSynth300K",
+    input_dir=f"C:\\.datasets_converted\\{dataset_name}\\train",
+    dataset_name=dataset_name,
     save_dir="C:\\.datasets_converted",
-    save_dataset_name="DocSynth300K_split",
-    test_valid_fractions=[0.05, 0.05],
-    move=True)
+    test_valid_fractions=[0.1, 0.1])

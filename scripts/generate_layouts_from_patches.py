@@ -112,9 +112,8 @@ def read_data(input_dir, patches_per_class):
 def bestfit_generator(index):
     element_all = read_data(input_dir, patches_per_class)
     if sampling_strategy:
-        candidate_num = 500
-        large_elements_idx = random.sample(list(range(len(element_all['large']))), int(candidate_num*0.99))
-        small_elements_idx = random.sample(list(range(len(element_all['small']))), int(candidate_num*0.01))
+        large_elements_idx = random.sample(list(range(len(element_all['large']))), int(candidate_patches_num*0.99))
+        small_elements_idx = random.sample(list(range(len(element_all['small']))), int(candidate_patches_num*0.01))
     else:
         large_elements_idx = list(range(len(element_all['large'])))
         small_elements_idx = list(range(len(element_all['small'])))
@@ -125,12 +124,12 @@ def bestfit_generator(index):
     cand_elements = large_elements_idx + small_elements_idx
     # Initially, randomly put an element
     put_elements = []
-    e0 = random.choice(cand_elements)
+    e0 = cand_elements.pop(random.randint(0,len(cand_elements)-1))
     cx = random.uniform(min(e0.w/2, 1-e0.w/2), max(e0.w/2, 1-e0.w/2))
     cy = random.uniform(min(e0.h/2, 1-e0.h/2), max(e0.h/2, 1-e0.h/2))
     e0.cx, e0.cy = cx, cy
     put_elements = [e0]
-    cand_elements.remove(e0)
+    #cand_elements.remove(e0)
     small_cnt = 1 if either_dimension_is_small(e0) else 0
     # Iterativelly insert elements
     while True:
@@ -192,11 +191,12 @@ def bestfit_generator(index):
         json.dump(put_elements, f, default=lambda x: x.__dict__, indent=2)
 
 
-median_strategy = True
+median_strategy = False
 median_w = 0
 median_h = 0
-sampling_strategy = False
-patches_per_class = 5
+sampling_strategy = True
+candidate_patches_num = 500
+patches_per_class = 100 if sampling_strategy else 5
 layouts_count = 10000
 input_dir = "C:\\.patches\\DocBank_40000_patches"
 
@@ -204,15 +204,17 @@ median_suffix = "median" if median_strategy else "percentage"
 sampling_suffix = "sampling" if sampling_strategy else "shuffle"
 suffix = f"+{median_suffix}+{sampling_suffix}"
 
+output_prefix = "C:\\.layouts\\"
+output_dataset_name_prefix = "DocBank_"
 output_dir = create_dir(
-        create_dir("C:\\.layouts\\") /
-        f"DocBank_{layouts_count}{suffix}")
+    create_dir(output_prefix) /
+    f"{output_dataset_name_prefix}{layouts_count}{suffix}")
 
 if __name__ == "__main__":
     shutil.copy(Path(input_dir) / "class_definitions.txt", output_dir)
     n_jobs = 8
     with multiprocessing.Pool(n_jobs) as pool:
-        pool.starmap(
+        result = pool.starmap(
             bestfit_generator,
             [(i,) for i in range(layouts_count)]
         )
