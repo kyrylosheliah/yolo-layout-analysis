@@ -8,3 +8,6 @@ venv/Scripts/Activate.ps1
 python -m pip install -e ./dependencies/MinerU
 pip install torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
 python -m pip install -e ./dependencies/ultralytics
+
+
+magic-pdf -p .\2411.18625v1.pdf -o out_mineru_custom_200
