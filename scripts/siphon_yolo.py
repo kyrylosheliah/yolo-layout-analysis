@@ -1,9 +1,7 @@
 import random
 from pathlib import Path
 import shutil
-from pathlib import Path
 import tqdm
-import shutil
 
 def traverse_dir(dir):
     dir = Path(f"{dir}")
